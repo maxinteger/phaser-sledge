@@ -2,7 +2,6 @@ var log = console.log.bind(console),
     sin = Math.sin,
     cos = Math.cos,
     zoom = 0.15,
-    speed = {x:0, y: 0, z:0.05},
     yPos = -1000,
     center = {
         x: 400,
@@ -17,15 +16,16 @@ function Sprite3D (){
     Phaser.Sprite.apply(this, arguments);
     this.scaleFactor = 1;
     this.pos = { x: 0, y: 0, z: 0 };
+    this.speed = {x:0, y: 0, z: 0 };
 }
 
 Sprite3D.prototype = _.create(Phaser.Sprite.prototype, {
     constructor: Sprite3D,
-    updatePosSize: function (){
+    update: function (){
         var pos = this.pos;
-        pos.x += speed.x;
-        pos.y += speed.y;
-        pos.z += speed.z;
+        pos.x += this.speed.x;
+        pos.y += this.speed.y;
+        pos.z += this.speed.z;
 
         if (pos.z > 0){
             pos.z = 0.0001;
@@ -48,6 +48,8 @@ function Tree(game){
     this.body.collideWorldBounds = false;
     this.body.bounce.set(1);
     this.reset();
+
+    this.speed = {x:0, y: 0, z:0.05}
 }
 
 Tree.prototype = _.create(Sprite3D.prototype, {
@@ -64,10 +66,49 @@ Tree.prototype = _.create(Sprite3D.prototype, {
 });
 
 
+function Car (){
+    Sprite3D.call(this, game, 0, 0, 'car');
+
+    game.add.existing(this);
+    game.physics.enable(this, Phaser.Physics.ARCADE);
+    this.anchor.setTo(0.5, 1);
+    this.frame = 1;
+    this.scale.setTo(1.5, 1.5);
+    this.body.collideWorldBounds = true;
+    this.body.bounce.set(1);
+
+    this.carSpeed = 50;
+    this.pos = { x: 0, y: yPos, z: -0.55 };
+}
+
+Car.prototype = _.create(Sprite3D.prototype, {
+    constructor: Car,
+    update: function(){
+        if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT) && this.pos.x < 1100) {
+            this.pos.x += this.carSpeed;
+            this.frame = 0;
+        } else if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT) && this.pos.x > -1100) {
+            this.pos.x -= this.carSpeed;
+            this.frame = 2;
+        } else if (game.input.keyboard.isDown(Phaser.Keyboard.UP) && this.pos.z > -10) {
+            this.pos.z -= this.carSpeed / 10000;
+            this.frame = 1;
+        } else if (game.input.keyboard.isDown(Phaser.Keyboard.DOWN) && this.pos.z < -0.4) {
+            this.pos.z += this.carSpeed / 10000;
+            this.frame = 1;
+        } else {
+            this.frame = 1;
+        }
+
+        Sprite3D.prototype.update.apply(this, arguments);
+        console.log(this.pos);
+    }
+});
+
 
 function updateItem (item) {
     item.bringToTop();
-    item.updatePosSize();
+    item.update();
     if (item.pos.z > 0) {
         _.pull(forest, item);
         item.reset();
@@ -90,6 +131,8 @@ function initTrees(num){
         tree.pos.z = zIndex;
         forest.push(tree);
     });
+    car = new Car();
+    forest.unshift(car);
 }
 
 
@@ -125,8 +168,7 @@ document.querySelector('#y-range').addEventListener('change', function(){
 /*
     GAME
  */
-var car,
-    carSpeed = 10;
+var car;
 var game = new Phaser.Game(800, 600, Phaser.AUTO, 'phaser-example', {
     preload: function () {
         game.load.image('tree', 'assets/tree.png');
@@ -135,38 +177,14 @@ var game = new Phaser.Game(800, 600, Phaser.AUTO, 'phaser-example', {
     create: function create() {
 
         game.physics.startSystem(Phaser.Physics.ARCADE);
-
-        car = game.add.sprite(400, 350, 'car');
-        car.anchor.setTo(0.5, 1);
-        car.frame = 1;
-        car.scale.setTo(1.5, 1.5);
-        game.physics.enable(car, Phaser.Physics.ARCADE);
-        car.body.collideWorldBounds = true;
-        car.body.bounce.set(1);
-
         initTrees(numOfTree);
     },
     update: function update (){
-        if (game.input.keyboard.isDown(Phaser.Keyboard.LEFT)) {
-            car.x -= carSpeed;
-            car.frame = 0;
-        } else if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT)) {
-            car.x += carSpeed;
-            car.frame = 2;
-        } else {
-            car.frame = 1;
-        }
-
         _(forest).each(updateItem);
+
         game.physics.arcade.collide(forest, car, collisionHandler, null, this);
     },
     render: function(){
-        game.debug.body(car);
-        _(forest).each(function(tree){
-            game.debug.body(tree);
-        });
-
-        game.debug.quadTree(game.physics.arcade.quadTree);
     }
 }, true);
 

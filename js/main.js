@@ -63,6 +63,7 @@ Tree.prototype = _.create(Sprite3D.prototype, {
     },
     reset: function(){
         var _x = 10000 - _.random(20000);
+        this.tint = 0xffffff;
         this.pos = {
             x: _x,//_x > 0 ? _x + 2000 : _x - 2000,
             y: yPos,
@@ -141,6 +142,7 @@ function initTrees(num){
 }
 
 function initRenderList(numOfTrees){
+    renderList = [];
     initTrees(numOfTrees);
     car = new Car();
     renderList.unshift(car);
@@ -192,12 +194,9 @@ var game = new Phaser.Game(800, 600, Phaser.AUTO, 'game', {
     update: function update (){
         _(renderList).each(updateItem);
 
-        game.physics.arcade.collide(forest, car, collisionHandler, null, this);
+        game.physics.arcade.overlap(forest, car, collisionHandler, null, this);
     },
     render: function(){
-        _.each(renderList, function(sprite){
-            game.debug.body(sprite);
-        });
     }
 }, true);
 

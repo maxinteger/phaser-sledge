@@ -2,6 +2,7 @@ var log = console.log.bind(console),
     sin = Math.sin,
     cos = Math.cos,
     zoom = 0.15,
+    speed = 0.05,
     yPos = -1000,
     center = {
         x: 400,
@@ -9,6 +10,8 @@ var log = console.log.bind(console),
     };
 
 var numOfTree = 100,
+    car = null,
+    renderList = [],
     forest = [],
     i;
 
@@ -44,7 +47,7 @@ function Tree(game){
     game.add.existing(this);
     game.physics.enable(this, Phaser.Physics.ARCADE);
     this.anchor.setTo(0.5, 1);
-    this.body.setSize(200, 50);
+    this.body.setSize(150, 50);
     this.body.collideWorldBounds = false;
     this.body.bounce.set(1);
     this.reset();
@@ -54,6 +57,10 @@ function Tree(game){
 
 Tree.prototype = _.create(Sprite3D.prototype, {
     constructor: Tree,
+    update: function () {
+        this.speed.z = speed;
+        Sprite3D.prototype.update.call(this);
+    },
     reset: function(){
         var _x = 10000 - _.random(20000);
         this.pos = {
@@ -90,7 +97,7 @@ Car.prototype = _.create(Sprite3D.prototype, {
         } else if (game.input.keyboard.isDown(Phaser.Keyboard.RIGHT) && this.pos.x > -1100) {
             this.pos.x -= this.carSpeed;
             this.frame = 2;
-        } else if (game.input.keyboard.isDown(Phaser.Keyboard.UP) && this.pos.z > -10) {
+        } else if (game.input.keyboard.isDown(Phaser.Keyboard.UP) && this.pos.z > -3) {
             this.pos.z -= this.carSpeed / 10000;
             this.frame = 1;
         } else if (game.input.keyboard.isDown(Phaser.Keyboard.DOWN) && this.pos.z < -0.4) {
@@ -101,7 +108,6 @@ Car.prototype = _.create(Sprite3D.prototype, {
         }
 
         Sprite3D.prototype.update.apply(this, arguments);
-        console.log(this.pos);
     }
 });
 
@@ -131,8 +137,13 @@ function initTrees(num){
         tree.pos.z = zIndex;
         forest.push(tree);
     });
+    renderList = renderList.concat(forest);
+}
+
+function initRenderList(numOfTrees){
+    initTrees(numOfTrees);
     car = new Car();
-    forest.unshift(car);
+    renderList.unshift(car);
 }
 
 
@@ -144,7 +155,7 @@ document.querySelector('#zoom-range').addEventListener('change', function(){
 });
 
 document.querySelector('#speed-range').addEventListener('change', function(){
-    speed.z = parseFloat(this.value) || 1;
+    speed = parseFloat(this.value) || 1;
 });
 
 document.querySelector('#tree-range').addEventListener('change', function(){
@@ -153,7 +164,7 @@ document.querySelector('#tree-range').addEventListener('change', function(){
         if (forest[i]) forest[i].destroy(true);
     }
     forest.length = 0;
-    initTrees(num);
+    initRenderList(num);
     numOfTree = num;
 });
 
@@ -168,8 +179,7 @@ document.querySelector('#y-range').addEventListener('change', function(){
 /*
     GAME
  */
-var car;
-var game = new Phaser.Game(800, 600, Phaser.AUTO, 'phaser-example', {
+var game = new Phaser.Game(800, 600, Phaser.AUTO, 'game', {
     preload: function () {
         game.load.image('tree', 'assets/tree.png');
         game.load.spritesheet('car', 'assets/car.png', 54, 41);
@@ -177,14 +187,17 @@ var game = new Phaser.Game(800, 600, Phaser.AUTO, 'phaser-example', {
     create: function create() {
 
         game.physics.startSystem(Phaser.Physics.ARCADE);
-        initTrees(numOfTree);
+        initRenderList(numOfTree);
     },
     update: function update (){
-        _(forest).each(updateItem);
+        _(renderList).each(updateItem);
 
         game.physics.arcade.collide(forest, car, collisionHandler, null, this);
     },
     render: function(){
+        _.each(renderList, function(sprite){
+            game.debug.body(sprite);
+        });
     }
 }, true);
 

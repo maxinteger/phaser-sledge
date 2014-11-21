@@ -47,7 +47,7 @@ function Tree(game){
     game.add.existing(this);
     game.physics.enable(this, Phaser.Physics.ARCADE);
     this.anchor.setTo(0.5, 1);
-    this.body.setSize(150, 50);
+    this.body.setSize(150, 50);     // collision body
     this.body.collideWorldBounds = false;
     this.body.bounce.set(1);
     this.reset();
